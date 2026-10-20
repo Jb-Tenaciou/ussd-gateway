@@ -1,0 +1,27 @@
+# Environnement local reproductible : API + PostgreSQL (sans dépendre d'Aiven)
+# Usage : SECRET_KEY=$(python -c "import secrets;print(secrets.token_hex(32))") docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ussd
+      POSTGRES_PASSWORD: ussd_local_pwd
+      POSTGRES_DB: ussd
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ussd"]
+      interval: 5s
+      retries: 10
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ussd:ussd_local_pwd@db:5432/ussd
+      SECRET_KEY: ${SECRET_KEY:?Définir SECRET_KEY (32+ caractères)}
+    ports:
+      - "8000:8000"
+volumes:
+  pgdata:
