@@ -54,3 +54,44 @@ def test_sms_and_audit(client, admin, demo):
     assert s2["sent_at"]
     assert client.get("/api/v1/audit-logs", headers=admin).status_code == 200
     assert client.get("/api/v1/audit-logs", headers=demo).status_code == 403
+
+
+def test_duplicate_user_409(client, admin):
+    body = {"full_name": "Dup", "phone_number": "+25779111111", "password": "Password123"}
+    assert client.post("/api/v1/users", headers=admin, json=body).status_code == 409
+
+
+def test_inactive_user_cannot_use_token(client, admin, demo):
+    me = client.get("/api/v1/auth/me", headers=demo).json()
+    client.patch(f"/api/v1/users/{me['id']}", headers=admin, json={"is_active": False})
+    assert client.get("/api/v1/auth/me", headers=demo).status_code == 401
+
+
+def test_bruteforce_lock(client):
+    for _ in range(5):
+        client.post("/api/v1/auth/login", json={"phone_number": "+25779333333", "password": "xxxxxxxx"})
+    r = client.post("/api/v1/auth/login", json={"phone_number": "+25779333333", "password": "xxxxxxxx"})
+    assert r.status_code == 429
+
+
+def test_change_password(client, demo):
+    r = client.post("/api/v1/auth/change-password", headers=demo,
+                    json={"old_password": "Demo12345", "new_password": "NouveauPass1"})
+    assert r.status_code == 204
+    r = client.post("/api/v1/auth/login", json={"phone_number": "+25779111111", "password": "NouveauPass1"})
+    assert r.status_code == 200
+
+
+def test_session_expiration(client, admin):
+    from datetime import timedelta
+
+    from app.database import SessionLocal
+    from app.models import UssdSession, utcnow
+    s = client.post("/api/v1/sessions", headers=admin, json={"phone_number": "+25779111111"}).json()
+    with SessionLocal() as db:
+        row = db.get(UssdSession, s["id"])
+        row.last_activity_at = utcnow() - timedelta(seconds=3600)
+        db.commit()
+    assert client.get(f"/api/v1/sessions/{s['id']}", headers=admin).json()["session_state"] == "EXPIRED"
+    r = client.post(f"/api/v1/sessions/{s['id']}/interactions", headers=admin, json={"menu_code": "MAIN"})
+    assert r.status_code == 409

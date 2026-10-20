@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from app.config import settings
 from app.database import engine
 from app.routers import audit, auth, sessions, sms, transactions, users
 
@@ -10,7 +11,7 @@ app = FastAPI(
     version="1.0.0",
     description="API REST du prototype de laboratoire. Aucun argent réel, aucun PIN réel.",
 )
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://localhost:5173"],
+app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
                    allow_methods=["*"], allow_headers=["*"])
 
 for r in (auth, users, sessions, transactions, sms, audit):

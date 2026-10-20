@@ -1,7 +1,6 @@
 import re
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -33,19 +32,24 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class UserCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
     phone_number: str
-    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
     role: Role = Role.DEMO_USER
 
     _p = field_validator("phone_number")(_check_phone)
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = Field(default=None, min_length=2, max_length=120)
-    role: Optional[Role] = None
-    is_active: Optional[bool] = None
+    full_name: str | None = Field(default=None, min_length=2, max_length=120)
+    role: Role | None = None
+    is_active: bool | None = None
 
 
 class UserOut(ORM):
@@ -58,50 +62,50 @@ class UserOut(ORM):
 
 
 class SessionCreate(BaseModel):
-    session_code: Optional[str] = Field(default=None, max_length=64)
+    session_code: str | None = Field(default=None, max_length=64)
     phone_number: str
-    user_id: Optional[int] = None
+    user_id: int | None = None
     current_menu: str = "MAIN"
 
     _p = field_validator("phone_number")(_check_phone)
 
 
 class SessionUpdate(BaseModel):
-    current_menu: Optional[str] = Field(default=None, max_length=50)
-    session_state: Optional[SessionState] = None
+    current_menu: str | None = Field(default=None, max_length=50)
+    session_state: SessionState | None = None
 
 
 class SessionOut(ORM):
     id: int
     session_code: str
-    user_id: Optional[int]
+    user_id: int | None
     phone_number: str
     current_menu: str
     session_state: SessionState
     started_at: datetime
     last_activity_at: datetime
-    ended_at: Optional[datetime]
+    ended_at: datetime | None
 
 
 class InteractionCreate(BaseModel):
     menu_code: str = Field(max_length=50)
-    user_input: Optional[str] = Field(default=None, max_length=255)
-    system_response: Optional[str] = Field(default=None, max_length=2000)
+    user_input: str | None = Field(default=None, max_length=255)
+    system_response: str | None = Field(default=None, max_length=2000)
 
 
 class InteractionOut(ORM):
     id: int
     session_id: int
     menu_code: str
-    user_input: Optional[str]
-    system_response: Optional[str]
+    user_input: str | None
+    system_response: str | None
     step_number: int
     created_at: datetime
 
 
 class TransactionCreate(BaseModel):
-    user_id: Optional[int] = None
-    session_id: Optional[int] = None
+    user_id: int | None = None
+    session_id: int | None = None
     amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
     currency: str = Field(default="BIF", min_length=3, max_length=3)
     transaction_type: TxType = TxType.PAYMENT
@@ -120,23 +124,23 @@ class TransactionStatusUpdate(BaseModel):
 class TransactionOut(ORM):
     id: int
     reference: str
-    user_id: Optional[int]
-    session_id: Optional[int]
+    user_id: int | None
+    session_id: int | None
     amount: Decimal
     currency: str
     transaction_type: TxType
     status: TxStatus
     idempotency_key: str
     created_at: datetime
-    completed_at: Optional[datetime]
+    completed_at: datetime | None
 
 
 class SmsCreate(BaseModel):
     phone_number: str
     direction: SmsDirection = SmsDirection.OUTBOUND
     message_text: str = Field(min_length=1, max_length=640)
-    transaction_id: Optional[int] = None
-    provider_reference: Optional[str] = Field(default=None, max_length=100)
+    transaction_id: int | None = None
+    provider_reference: str | None = Field(default=None, max_length=100)
 
     _p = field_validator("phone_number")(_check_phone)
 
@@ -147,28 +151,28 @@ class SmsStatusUpdate(BaseModel):
 
 class SmsOut(ORM):
     id: int
-    transaction_id: Optional[int]
+    transaction_id: int | None
     phone_number: str
     direction: SmsDirection
     message_text: str
     status: SmsStatus
-    provider_reference: Optional[str]
+    provider_reference: str | None
     created_at: datetime
-    sent_at: Optional[datetime]
+    sent_at: datetime | None
 
 
 class AuditCreate(BaseModel):
     action: str = Field(max_length=100)
     resource_type: str = Field(max_length=50)
-    resource_id: Optional[str] = Field(default=None, max_length=64)
+    resource_id: str | None = Field(default=None, max_length=64)
     result: str = Field(max_length=20)
 
 
 class AuditOut(ORM):
     id: int
-    actor_user_id: Optional[int]
+    actor_user_id: int | None
     action: str
     resource_type: str
-    resource_id: Optional[str]
+    resource_id: str | None
     result: str
     created_at: datetime

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -9,13 +9,19 @@ from app.config import settings
 from app.database import get_db
 from app.deps import audit, staff
 from app.models import SessionState, User, UssdInteraction, UssdSession, utcnow
-from app.schemas import InteractionCreate, InteractionOut, SessionCreate, SessionOut, SessionUpdate
+from app.schemas import (
+    InteractionCreate,
+    InteractionOut,
+    SessionCreate,
+    SessionOut,
+    SessionUpdate,
+)
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["USSD sessions"])
 
 
 def _aware(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def _get(db: Session, session_id: int) -> UssdSession:

@@ -18,7 +18,7 @@ def get_current_user(
     try:
         payload = decode_token(creds.credentials)
     except jwt.PyJWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Jeton invalide ou expiré")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Jeton invalide ou expiré") from None
     user = db.get(User, int(payload["sub"]))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Utilisateur inactif ou inconnu")
